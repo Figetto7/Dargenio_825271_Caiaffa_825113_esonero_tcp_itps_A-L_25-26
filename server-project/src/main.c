@@ -1,11 +1,4 @@
-/*
- * main.c
- *
- * TCP Server - Template for Computer Networks assignment
- *
- * This file contains the boilerplate code for a TCP server
- * portable across Windows, Linux and macOS.
- */
+//TCP Server - Template for Computer Networks assignment
 
 #if defined WIN32
 #include <winsock.h>
@@ -60,23 +53,18 @@ int is_valid_city(const char *city) {
         return (lower_type == 't' || lower_type == 'h' || lower_type == 'w' || lower_type == 'p');
     }
 
-
-// Range: -10.0 to 40.0 °C
 float get_temperature(void) {
     return -10.0 + (rand() / (float)RAND_MAX) * 50.0;
 }
 
-// Range: 20.0 to 100.0 %
 float get_humidity(void) {
     return 20.0 + (rand() / (float)RAND_MAX) * 80.0;
 }
 
-// Range: 0.0 to 100.0 km/h
 float get_wind(void) {
     return (rand() / (float)RAND_MAX) * 100.0;
 }
 
-// Range: 950.0 to 1050.0 hPa
 float get_pressure(void) {
     return 950.0 + (rand() / (float)RAND_MAX) * 100.0;
 }
@@ -87,8 +75,7 @@ int main(int argc, char *argv[]) {
 
 	srand(time(NULL));
 
-	// Parsing arguments: -p port (optional)
-	int port = SERVER_PORT;  // default from protocol.h
+	int port = SERVER_PORT;
 
 	if (argc == 3) {
 	    if (strcmp(argv[1], "-p") == 0) {
@@ -109,7 +96,6 @@ int main(int argc, char *argv[]) {
 	printf("Server is listening on port %d...\n", port);
 
 #if defined WIN32
-	// Initialize Winsock
 	WSADATA wsa_data;
 	int result = WSAStartup(MAKEWORD(2,2), &wsa_data);
 	if (result != NO_ERROR) {
@@ -128,22 +114,18 @@ int main(int argc, char *argv[]) {
 	    return 1;
 	}
 
-	// Configure server address
 	struct sockaddr_in sad;
 	memset(&sad, 0, sizeof(sad));
 	sad.sin_family = AF_INET;
 	sad.sin_addr.s_addr = INADDR_ANY;
 	sad.sin_port = htons(port);
 
-	// Bind socket
 	if (bind(my_socket, (struct sockaddr*) &sad, sizeof(sad)) < 0) {
 	    printf("Error: bind() failed\n");
 	    closesocket(my_socket);
 	    clearwinsock();
 	    return 1;
 	}
-
-	// listen(...);
 
 	if (listen(my_socket, QLEN) < 0) {
 	        printf("Error: listen() failed\n");
@@ -152,13 +134,9 @@ int main(int argc, char *argv[]) {
 	        return 1;
 	    }
 
-
-	// Connection acceptance loop
-
 	struct sockaddr_in cad;
 	int client_socket;
 	int client_len;
-
 	printf("Waiting for clients to connect...\n");
 
 	while (1) {
@@ -170,38 +148,42 @@ int main(int argc, char *argv[]) {
 	        continue;
 	    }
 
-	    printf("Client connected: %s\n", inet_ntoa(cad.sin_addr));
-
 	    weather_request_t request;
 	    int bytes_rcvd = recv(client_socket, (char*)&request, sizeof(request), 0);
 
-	    if (bytes_rcvd <= 0) {
-	        printf("Error: recv() failed\n");
+	    if (bytes_rcvd != (int)sizeof(request)) {
+	        printf("Error: recv() failed or incomplete request (%d bytes)\n", bytes_rcvd);
 	        closesocket(client_socket);
 	        continue;
 	    }
 
-	    printf("Request '%c %s' from client ip %s\n", request.type, request.city, inet_ntoa(cad.sin_addr));
+	    printf("Request '%c %s' from client IP %s\n", request.type, request.city, inet_ntoa(cad.sin_addr));
 
 	    weather_response_t response;
 
-	    if (!is_valid_type(request.type)) {
+	    char req_type = (char) tolower((unsigned char) request.type);
+
+	    if (!is_valid_type(req_type)) {
 	        response.status = STATUS_INVALID_REQUEST;
 	        response.type = '\0';
-	        response.value = 0.0;
-	    }
-	    else if (!is_valid_city(request.city)) {
+	        response.value = 0.0f;
+	    } else if (!is_valid_city(request.city)) {
 	        response.status = STATUS_CITY_NOT_FOUND;
 	        response.type = '\0';
-	        response.value = 0.0;
-	    }
-	    else {
+	        response.value = 0.0f;
+	    } else {
 	        response.status = STATUS_OK;
-	        response.type = request.type;
-	        if (request.type == 't') response.value = get_temperature();
-	        if (request.type == 'h') response.value = get_humidity();
-	        if (request.type == 'w') response.value = get_wind();
-	        if (request.type == 'p') response.value = get_pressure();
+	        response.type = req_type;
+	        switch (req_type) {
+	            case 't': response.value = get_temperature(); break;
+	            case 'h': response.value = get_humidity(); break;
+	            case 'w': response.value = get_wind(); break;
+	            case 'p': response.value = get_pressure(); break;
+	            default:
+	                response.status = STATUS_INVALID_REQUEST;
+	                response.type = '\0';
+	                response.value = 0.0f;
+	        }
 	    }
 
 	    send(client_socket, (char*)&response, sizeof(response), 0);
@@ -209,8 +191,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("Server terminated.\n");
-
 	closesocket(my_socket);
 	clearwinsock();
 	return 0;
-} // main end
+}

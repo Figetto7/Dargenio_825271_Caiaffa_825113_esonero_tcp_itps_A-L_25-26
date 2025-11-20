@@ -1,11 +1,5 @@
-/*
- * main.c
- *
- * TCP Client - Template for Computer Networks assignment
- *
- * This file contains the boilerplate code for a TCP client
- * portable across Windows, Linux and macOS.
- */
+// TCP Client - Template for Computer Networks assignment
+
 
 #if defined WIN32
 #include <winsock.h>
@@ -41,7 +35,6 @@ int main(int argc, char *argv[]) {
     int port = SERVER_PORT;
     char *request_str = NULL;
 
-    // Parsing
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) {
             server_ip = argv[i + 1];
@@ -65,29 +58,22 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Checks if -r is present
     if (request_str == NULL) {
         printf("Error: -r is mandatory!\n");
         printf("Usage: %s [-s server] [-p port] -r \"type city\"\n", argv[0]);
         return 1;
     }
 
-    // Find type of request and city
     char type;
     char city[64];
 
     if (sscanf(request_str, "%c %s", &type, city) != 2) {
         printf("Error: invalid form of request\n");
-        printf("Correct form: \"t city\" (es: \"t bari\")\n");
+        printf("Correct form: \"t city\" (example: \"t bari\")\n");
         return 1;
     }
 
-    printf("Connection to a %s:%d...\n", server_ip, port);
-    printf("Request: type = '%c', city = '%s'\n", type, city);
-
-
 #if defined WIN32
-	// Initialize Winsock
 	WSADATA wsa_data;
 	int result = WSAStartup(MAKEWORD(2,2), &wsa_data);
 	if (result != NO_ERROR) {
@@ -105,8 +91,6 @@ int main(int argc, char *argv[]) {
 	    return 1;
 	}
 
-	printf("Socket created successfully\n");
-
 	struct sockaddr_in sad;
 	memset(&sad, 0, sizeof(sad));
 
@@ -122,62 +106,81 @@ int main(int argc, char *argv[]) {
 	   clearwinsock();
 	   return 1;
 	}
-
-	printf("Connected to server!\n\n");
-
-
-	// TODO: Implement communication logic
-	// send(...);
-	// recv(...);
-
-	// Prepara la struttura richiesta
 	weather_request_t request;
-	request.type = type;           // dal parsing
-	strcpy(request.city, city);    // dal parsing
+	request.type = type;
+	strcpy(request.city, city);
 
-	// Invia al server
 	if (send(c_socket, (char*)&request, sizeof(request), 0) < 0) {
-	    printf("Errore: send() fallito\n");
+	    printf("Error: send() failed\n");
 	    closesocket(c_socket);
 	    clearwinsock();
 	    return 1;
 	}
 
-	// Ricevi la risposta
 	weather_response_t response;
 	int bytes_rcvd = recv(c_socket, (char*)&response, sizeof(response), 0);
 
 	if (bytes_rcvd <= 0) {
-	    printf("Errore: recv() fallito\n");
+	    printf("Error: recv() failed or connection closed\n");
 	    closesocket(c_socket);
 	    clearwinsock();
 	    return 1;
 	}
 
-	printf("Ricevuto risultato dal server ip %s. ", server_ip);
+	if (bytes_rcvd != sizeof(response)) {
+	    printf("Error: received incomplete data (%d bytes instead of %d)\n", bytes_rcvd, sizeof(response));
+	    closesocket(c_socket);
+	    clearwinsock();
+	    return 1;
+	}
+
+	printf("Result received from Server %s: ", server_ip);
 
 	if (response.status == STATUS_OK) {
-	    if (response.type == 't')
-	        printf("%s: Temperatura = %.1f°C\n", city, response.value);
-	    else if (response.type == 'h')
-	        printf("%s: Umidità = %.1f%%\n", city, response.value);
-	    else if (response.type == 'w')
-	        printf("%s: Vento = %.1f km/h\n", city, response.value);
-	    else if (response.type == 'p')
-	        printf("%s: Pressione = %.1f hPa\n", city, response.value);
-	}
-	else if (response.status == STATUS_CITY_NOT_FOUND) {
-	    printf("Città non disponibile\n");
-	}
-	else if (response.status == STATUS_INVALID_REQUEST) {
-	    printf("Richiesta non valida\n");
+
+	    switch (response.type) {
+	        case 't':
+	            printf("%s: Temperature = %.1f°C\n", city, response.value);
+	            break;
+
+	        case 'h':
+	            printf("%s: Humidity = %.1f%%\n", city, response.value);
+	            break;
+
+	        case 'w':
+	            printf("%s: Wind = %.1f km/h\n", city, response.value);
+	            break;
+
+	        case 'p':
+	            printf("%s: Pressure = %.1f hPa\n", city, response.value);
+	            break;
+
+	        default:
+	            printf("Unknown response type\n");
+	            break;
+	    }
+
+	} else {
+	    switch (response.status) {
+	        case STATUS_CITY_NOT_FOUND:
+	            printf("City not available\n");
+	            break;
+
+	        case STATUS_INVALID_REQUEST:
+	            printf("Invalid request\n");
+	            break;
+
+	        default:
+	            printf("Unknown error\n");
+	            break;
+	    }
 	}
 
-	// Close socket
-	closesocket(c_socket);  // ✅
+
+	closesocket(c_socket);
 
 	printf("Client terminated.\n");
 
 	clearwinsock();
 	return 0;
-} // main end
+}

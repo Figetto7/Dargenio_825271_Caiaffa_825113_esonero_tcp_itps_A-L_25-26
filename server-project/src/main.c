@@ -1,3 +1,12 @@
+/*
+ * main.c
+ *
+ * TCP Server - Template for Computer Networks assignment
+ *
+ * This file contains the boilerplate code for a TCP server
+ * portable across Windows, Linux and macOS.
+ */
+
 //TCP Server - Template for Computer Networks assignment
 
 #if defined WIN32
@@ -48,10 +57,10 @@ int is_valid_city(const char *city) {
     return 0;
 }
 
-    int is_valid_type(char type) {
-        char lower_type = tolower(type);
-        return (lower_type == 't' || lower_type == 'h' || lower_type == 'w' || lower_type == 'p');
-    }
+int is_valid_type(char type) {
+    char lower_type = tolower(type);
+    return (lower_type == 't' || lower_type == 'h' || lower_type == 'w' || lower_type == 'p');
+}
 
 float get_temperature(void) {
     return -10.0 + (rand() / (float)RAND_MAX) * 50.0;
@@ -81,25 +90,25 @@ int main(int argc, char *argv[]) {
 	    if (strcmp(argv[1], "-p") == 0) {
 	        port = atoi(argv[2]);
 	        if (port <= 0 || port > 65535) {
-	            printf("Error: invalid port number (must be between 1-65535)\n");
+	            printf("Errore: numero di porta non valido (deve essere tra 1-65535)\n");
 	            return 1;
 	        }
 	    } else {
-	        printf("Usage: %s [-p port]\n", argv[0]);
+	        printf("Uso: %s [-p port]\n", argv[0]);
 	        return 1;
 	    }
 	} else if (argc != 1) {
-	    printf("Usage: %s [-p port]\n", argv[0]);
+	    printf("Uso: %s [-p port]\n", argv[0]);
 	    return 1;
 	}
 
-	printf("Server is listening on port %d...\n", port);
+	printf("Server in ascolto sulla porta %d...\n", port);
 
 #if defined WIN32
 	WSADATA wsa_data;
 	int result = WSAStartup(MAKEWORD(2,2), &wsa_data);
 	if (result != NO_ERROR) {
-		printf("Error at WSAStartup()\n");
+		printf("Errore in WSAStartup()\n");
 		return 0;
 	}
 #endif
@@ -109,7 +118,7 @@ int main(int argc, char *argv[]) {
 	my_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	if (my_socket < 0) {
-		printf("socket creation failed.\n");
+		printf("Creazione socket fallita.\n");
 	    clearwinsock();
 	    return 1;
 	}
@@ -121,30 +130,30 @@ int main(int argc, char *argv[]) {
 	sad.sin_port = htons(port);
 
 	if (bind(my_socket, (struct sockaddr*) &sad, sizeof(sad)) < 0) {
-	    printf("Error: bind() failed\n");
+	    printf("Errore: bind() fallita\n");
 	    closesocket(my_socket);
 	    clearwinsock();
 	    return 1;
 	}
 
 	if (listen(my_socket, QLEN) < 0) {
-	        printf("Error: listen() failed\n");
-	        closesocket(my_socket);
-	        clearwinsock();
-	        return 1;
-	    }
+	    printf("Errore: listen() fallita\n");
+	    closesocket(my_socket);
+	    clearwinsock();
+	    return 1;
+	}
 
 	struct sockaddr_in cad;
 	int client_socket;
 	int client_len;
-	printf("Waiting for clients to connect...\n");
+	printf("In attesa di connessioni client...\n");
 
 	while (1) {
 	    client_len = sizeof(cad);
 
 	    client_socket = accept(my_socket, (struct sockaddr *)&cad, &client_len);
 	    if (client_socket < 0) {
-	        printf("Error: accept() failed\n");
+	        printf("Errore: accept() fallita\n");
 	        continue;
 	    }
 
@@ -152,12 +161,12 @@ int main(int argc, char *argv[]) {
 	    int bytes_rcvd = recv(client_socket, (char*)&request, sizeof(request), 0);
 
 	    if (bytes_rcvd != (int)sizeof(request)) {
-	        printf("Error: recv() failed or incomplete request (%d bytes)\n", bytes_rcvd);
+	        printf("Errore: recv() fallita o richiesta incompleta (%d bytes)\n", bytes_rcvd);
 	        closesocket(client_socket);
 	        continue;
 	    }
 
-	    printf("Request '%c %s' from client IP %s\n", request.type, request.city, inet_ntoa(cad.sin_addr));
+	    printf("Richiesta '%c %s' dal client ip %s\n", request.type, request.city, inet_ntoa(cad.sin_addr));
 
 	    weather_response_t response;
 
@@ -190,7 +199,7 @@ int main(int argc, char *argv[]) {
 	    closesocket(client_socket);
 	}
 
-	printf("Server terminated.\n");
+	printf("Server terminato.\n");
 	closesocket(my_socket);
 	clearwinsock();
 	return 0;

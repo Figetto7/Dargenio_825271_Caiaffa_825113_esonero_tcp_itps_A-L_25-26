@@ -34,6 +34,10 @@
 #endif
 #define QLEN 6
 
+#if defined WIN32
+typedef int socklen_t;
+#endif
+
 void clearwinsock() {
 #if defined WIN32
 	WSACleanup();
@@ -145,7 +149,7 @@ int main(int argc, char *argv[]) {
 
 	struct sockaddr_in cad;
 	int client_socket;
-	int client_len;
+	socklen_t client_len;
 	printf("In attesa di connessioni client...\n");
 
 	while (1) {

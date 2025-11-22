@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (bytes_rcvd != sizeof(response)) {
-	    printf("Errore: ricevuti dati incompleti (%d bytes al posto di %d)\n", bytes_rcvd, sizeof(response));
+		printf("Errore: dati incompleti ricevuti (%d bytes invece di %lu)\n", bytes_rcvd, (unsigned long)sizeof(response));
 	    closesocket(c_socket);
 	    clearwinsock();
 	    return 1;
